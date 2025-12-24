@@ -1,15 +1,20 @@
+/**
+ * Smart Order Node
+ * Position-aware order placement
+ */
+
 import { memo } from 'react'
 import { Handle, Position } from '@xyflow/react'
-import { ShoppingCart } from 'lucide-react'
+import { Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { PlaceOrderNodeData } from '@/types'
+import type { SmartOrderNodeData } from '@/types'
 
-interface PlaceOrderNodeProps {
-  data: PlaceOrderNodeData
+interface SmartOrderNodeProps {
+  data: SmartOrderNodeData
   selected?: boolean
 }
 
-export const PlaceOrderNode = memo(({ data, selected }: PlaceOrderNodeProps) => {
+export const SmartOrderNode = memo(({ data, selected }: SmartOrderNodeProps) => {
   return (
     <div
       className={cn(
@@ -25,10 +30,10 @@ export const PlaceOrderNode = memo(({ data, selected }: PlaceOrderNodeProps) => 
       <div className="p-2">
         <div className="mb-1.5 flex items-center gap-1.5">
           <div className="node-icon flex h-5 w-5 items-center justify-center rounded">
-            <ShoppingCart className="h-3 w-3" />
+            <Zap className="h-3 w-3" />
           </div>
           <div>
-            <div className="text-xs font-medium leading-tight">Place Order</div>
+            <div className="text-xs font-medium leading-tight">Smart Order</div>
             <div className="text-[9px] text-muted-foreground">
               {data.exchange || 'NSE'}
             </div>
@@ -53,18 +58,14 @@ export const PlaceOrderNode = memo(({ data, selected }: PlaceOrderNodeProps) => 
               <span className="mono-data font-medium">{data.quantity || 0}</span>
             </div>
           </div>
+          <div className="flex items-center justify-between rounded bg-muted/50 px-1.5 py-1">
+            <span className="text-[10px] text-muted-foreground">Max Pos</span>
+            <span className="mono-data text-[10px] font-medium">{data.positionSize || 0}</span>
+          </div>
           <div className="flex items-center justify-between text-[9px] text-muted-foreground">
             <span>{data.priceType || 'MARKET'}</span>
             <span>{data.product || 'MIS'}</span>
           </div>
-          {data.ltp !== undefined && (
-            <div className="mt-0.5 flex items-center justify-between rounded border border-border/50 bg-surface-2 px-1.5 py-0.5">
-              <span className="text-[9px] text-muted-foreground">LTP</span>
-              <span className="mono-data text-[10px] font-semibold text-primary">
-                {data.ltp.toFixed(2)}
-              </span>
-            </div>
-          )}
         </div>
       </div>
       <Handle
@@ -76,4 +77,4 @@ export const PlaceOrderNode = memo(({ data, selected }: PlaceOrderNodeProps) => 
   )
 })
 
-PlaceOrderNode.displayName = 'PlaceOrderNode'
+SmartOrderNode.displayName = 'SmartOrderNode'

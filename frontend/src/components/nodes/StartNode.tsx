@@ -1,22 +1,27 @@
 import { memo } from 'react'
-import { Handle, Position, type NodeProps } from '@xyflow/react'
+import { Handle, Position } from '@xyflow/react'
 import { Clock, Calendar, CalendarDays } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { StartNodeData } from '@/types'
 
-const scheduleIcons = {
+interface StartNodeProps {
+  data: StartNodeData
+  selected?: boolean
+}
+
+const scheduleIcons: Record<string, typeof Clock> = {
   once: Calendar,
   daily: Clock,
   weekly: CalendarDays,
 }
 
-const scheduleLabels = {
+const scheduleLabels: Record<string, string> = {
   once: 'One-time',
   daily: 'Daily',
   weekly: 'Weekly',
 }
 
-export const StartNode = memo(({ data, selected }: NodeProps<StartNodeData>) => {
+export const StartNode = memo(({ data, selected }: StartNodeProps) => {
   const Icon = scheduleIcons[data.scheduleType] || Clock
 
   return (

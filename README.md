@@ -5,8 +5,11 @@ A visual workflow editor for trading automation with OpenAlgo integration. Build
 ## Features
 
 - Visual workflow editor with ReactFlow
-- Schedule-based order execution
-- OpenAlgo integration for order placement
+- 30+ node types for comprehensive trading automation
+- Options trading with multi-leg strategies (Iron Condor, Straddle, Strangle, Spreads)
+- Schedule-based and price alert triggers
+- Conditional branching (If/Else logic)
+- Variable system for data passing between nodes
 - Real-time LTP updates via WebSocket
 - SQLite database (zero configuration)
 - Dark theme optimized for trading
@@ -93,9 +96,7 @@ npm install
 ## Creating Workflows
 
 1. Click "New Workflow" on the Dashboard
-2. Drag nodes from the left panel to the canvas:
-   - **Schedule**: Set when the workflow runs (once/daily/weekly)
-   - **Place Order**: Configure trading orders
+2. Drag nodes from the left panel to the canvas
 3. Connect nodes by dragging from one handle to another
 4. Configure each node by clicking on it
 5. Save the workflow
@@ -108,12 +109,80 @@ npm install
 | Node | Description |
 |------|-------------|
 | Schedule | Start workflow at specified time (once/daily/weekly) |
+| Price Alert | Trigger when price crosses threshold |
 
-### Actions
+### Actions - Orders
 
 | Node | Description |
 |------|-------------|
-| Place Order | Place a trading order via OpenAlgo |
+| Place Order | Place a basic trading order |
+| Smart Order | Position-aware ordering with auto quantity |
+| Options Order | ATM/ITM/OTM options with expiry selection |
+| Multi-Leg | Options strategies (Straddle, Strangle, Iron Condor, Spreads) |
+| Basket Order | Execute multiple orders at once |
+| Split Order | Split large orders into smaller chunks |
+| Modify Order | Modify an existing order |
+| Cancel Order | Cancel a specific order by ID |
+| Cancel All | Cancel all open orders |
+| Close Positions | Square off all positions |
+
+### Options Expiry Types
+
+| Type | Description |
+|------|-------------|
+| Current Week | Nearest weekly expiry |
+| Next Week | Second weekly expiry |
+| Current Month | Last expiry of current month |
+| Next Month | Last expiry of next month |
+
+### Options Strategies (Multi-Leg)
+
+| Strategy | Description |
+|----------|-------------|
+| Straddle | ATM CE + ATM PE (same strike) |
+| Strangle | OTM CE + OTM PE (different strikes) |
+| Iron Condor | 4-leg neutral strategy |
+| Bull Call Spread | Buy ATM CE, Sell OTM CE |
+| Bear Put Spread | Buy ATM PE, Sell OTM PE |
+
+### Conditions
+
+| Node | Description |
+|------|-------------|
+| Position Check | Check if position exists or quantity threshold |
+| Fund Check | Verify available margin |
+| Price Condition | Compare price against threshold |
+| Time Window | Check if within market hours |
+
+### Data Nodes
+
+| Node | Description |
+|------|-------------|
+| Get Quote | Fetch real-time quote (LTP, OHLC, volume) |
+| Get Depth | 5-level bid/ask market depth |
+| Order Status | Check status of a specific order |
+| Open Position | Get current position details |
+| History | Fetch OHLCV historical data |
+| Expiry Dates | Get F&O expiry dates |
+
+### Utilities
+
+| Node | Description |
+|------|-------------|
+| Variable | Store and manipulate values |
+| Log | Debug logging with levels (info/warn/error) |
+| Telegram | Send alerts via Telegram |
+| Delay | Wait for specified duration |
+| Group | Organize nodes visually |
+
+## Variable System
+
+Use variables to pass data between nodes:
+
+- Set variables with the Variable node
+- Reference variables using `{{variableName}}` syntax
+- Access nested properties: `{{quote.ltp}}`, `{{position.quantity}}`
+- System variables: `{{timestamp}}`, `{{date}}`, `{{time}}`
 
 ## Supported Exchanges
 
@@ -127,6 +196,17 @@ npm install
 - NCDEX (Commodity)
 - NSE_INDEX
 - BSE_INDEX
+
+## Supported Underlying Symbols
+
+| Symbol | Exchange | Lot Size |
+|--------|----------|----------|
+| NIFTY | NFO | 75 |
+| BANKNIFTY | NFO | 30 |
+| FINNIFTY | NFO | 65 |
+| MIDCPNIFTY | NFO | 120 |
+| SENSEX | BFO | 20 |
+| BANKEX | BFO | 30 |
 
 ## Order Types
 
@@ -166,6 +246,7 @@ npm install
 - **Frontend**: React, ReactFlow, shadcn/ui, TailwindCSS, Zustand
 - **Backend**: FastAPI, SQLAlchemy, APScheduler
 - **Database**: SQLite
+- **Integration**: OpenAlgo Node SDK 1.0.5
 
 ## Security Notes
 

@@ -1,18 +1,21 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Loader2, CheckCircle2, XCircle, Shield, Server, Radio } from 'lucide-react'
+import { Loader2, CheckCircle2, XCircle, Shield, Server, Radio, FlaskConical } from 'lucide-react'
 import { settingsApi } from '@/lib/api'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
 
 export function Settings() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const setSettings = useSettingsStore((state) => state.setSettings)
+  const analyzerMode = useSettingsStore((state) => state.analyzerMode)
+  const toggleAnalyzerMode = useSettingsStore((state) => state.toggleAnalyzerMode)
 
   const [apiKey, setApiKey] = useState('')
   const [host, setHost] = useState('http://127.0.0.1:5000')
@@ -196,6 +199,42 @@ export function Settings() {
                 onChange={(e) => setWsUrl(e.target.value)}
               />
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
+                <FlaskConical className="h-5 w-5 text-amber-500" />
+              </div>
+              <div>
+                <CardTitle>Analyzer Mode</CardTitle>
+                <CardDescription>
+                  Paper trading mode - orders are simulated
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Label htmlFor="analyzerMode">Enable Analyzer Mode</Label>
+                <p className="text-xs text-muted-foreground">
+                  When enabled, orders will be simulated without real execution
+                </p>
+              </div>
+              <Switch
+                id="analyzerMode"
+                checked={analyzerMode}
+                onCheckedChange={toggleAnalyzerMode}
+              />
+            </div>
+            {analyzerMode && (
+              <div className="mt-3 rounded-lg bg-amber-500/10 p-3 text-sm text-amber-500">
+                Analyzer Mode is active. All orders will be paper trades.
+              </div>
+            )}
           </CardContent>
         </Card>
 

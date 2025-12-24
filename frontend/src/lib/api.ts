@@ -74,17 +74,19 @@ export interface WorkflowListItem {
 
 export interface Node {
   id: string;
-  type: string;
+  type?: string;
   position: { x: number; y: number };
   data: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
 export interface Edge {
   id: string;
   source: string;
   target: string;
-  sourceHandle?: string;
-  targetHandle?: string;
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
+  [key: string]: unknown;
 }
 
 export interface WorkflowExecution {

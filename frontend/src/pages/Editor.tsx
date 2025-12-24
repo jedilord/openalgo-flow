@@ -20,6 +20,7 @@ import {
   MoreVertical,
 } from 'lucide-react'
 import { workflowsApi } from '@/lib/api'
+import { DEFAULT_NODE_DATA } from '@/lib/constants'
 import { useWorkflowStore } from '@/stores/workflowStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -30,16 +31,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useToast } from '@/hooks/use-toast'
-import { StartNode } from '@/components/nodes/StartNode'
-import { PlaceOrderNode } from '@/components/nodes/PlaceOrderNode'
+import { nodeTypes } from '@/components/nodes'
 import { NodePalette } from '@/components/panels/NodePalette'
 import { ConfigPanel } from '@/components/panels/ConfigPanel'
 import { cn } from '@/lib/utils'
-
-const nodeTypes = {
-  start: StartNode,
-  placeOrder: PlaceOrderNode,
-}
 
 let nodeId = 0
 const getNodeId = () => `node_${nodeId++}`
@@ -177,13 +172,14 @@ export function Editor() {
         y: event.clientY,
       })
 
+      // Get default data for the node type from constants
+      const defaultData = DEFAULT_NODE_DATA[type as keyof typeof DEFAULT_NODE_DATA] || {}
+
       const newNode: Node = {
         id: getNodeId(),
         type,
         position,
-        data: type === 'start'
-          ? { scheduleType: 'daily', time: '09:15' }
-          : { symbol: '', exchange: 'NSE', action: 'BUY', quantity: 1, priceType: 'MARKET', product: 'MIS' },
+        data: { ...defaultData },
       }
 
       addNode(newNode)

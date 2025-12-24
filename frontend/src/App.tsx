@@ -21,7 +21,7 @@ function EditorWrapper() {
 export default function App() {
   const setSettings = useSettingsStore((state) => state.setSettings)
   const setLoading = useSettingsStore((state) => state.setLoading)
-  const isConfigured = useSettingsStore((state) => state.is_configured)
+  // const isConfigured = useSettingsStore((state) => state.is_configured)
 
   const { data, isLoading } = useQuery({
     queryKey: ['settings'],
