@@ -597,12 +597,12 @@ export function ConfigPanel() {
               <div className="space-y-2">
                 <Label>Output Variable</Label>
                 <Input
-                  placeholder="e.g., orderResult"
+                  placeholder="orderResult"
                   value={(nodeData.outputVariable as string) || ''}
                   onChange={(e) => handleDataChange('outputVariable', e.target.value)}
                 />
                 <p className="text-[10px] text-muted-foreground">
-                  Store order response in variable. Access via: {`{{orderResult.orderid}}`}
+                  Variable name only (no {`{{}}`}). Use {`{{orderResult.orderid}}`} in other nodes.
                 </p>
               </div>
             </>
@@ -782,12 +782,12 @@ export function ConfigPanel() {
               <div className="space-y-2">
                 <Label>Output Variable</Label>
                 <Input
-                  placeholder="e.g., optionOrder"
+                  placeholder="optionOrder"
                   value={(nodeData.outputVariable as string) || ''}
                   onChange={(e) => handleDataChange('outputVariable', e.target.value)}
                 />
                 <p className="text-[10px] text-muted-foreground">
-                  Store order response. Access: {`{{optionOrder.orderid}}`}
+                  Variable name only (no {`{{}}`}). Use {`{{optionOrder.orderid}}`} in other nodes.
                 </p>
               </div>
             </>
@@ -1027,12 +1027,12 @@ export function ConfigPanel() {
               <div className="space-y-2">
                 <Label>Output Variable</Label>
                 <Input
-                  placeholder="e.g., multiLegOrder"
+                  placeholder="multiLegOrder"
                   value={(nodeData.outputVariable as string) || ''}
                   onChange={(e) => handleDataChange('outputVariable', e.target.value)}
                 />
                 <p className="text-[10px] text-muted-foreground">
-                  Store order response. Access: {`{{multiLegOrder.orderid}}`}
+                  Variable name only (no {`{{}}`}). Use {`{{multiLegOrder.results}}`} in other nodes.
                 </p>
               </div>
             </>
@@ -1094,12 +1094,12 @@ export function ConfigPanel() {
               <div className="space-y-2">
                 <Label>Output Variable</Label>
                 <Input
-                  placeholder="e.g., basketResult"
+                  placeholder="basketResult"
                   value={(nodeData.outputVariable as string) || ''}
                   onChange={(e) => handleDataChange('outputVariable', e.target.value)}
                 />
                 <p className="text-[10px] text-muted-foreground">
-                  Store basket response. Access: {`{{basketResult.orders}}`}
+                  Variable name only (no {`{{}}`}). Use {`{{basketResult.results}}`} in other nodes.
                 </p>
               </div>
               <p className="text-xs text-muted-foreground">
@@ -1198,12 +1198,12 @@ export function ConfigPanel() {
               <div className="space-y-2">
                 <Label>Output Variable</Label>
                 <Input
-                  placeholder="e.g., splitResult"
+                  placeholder="splitResult"
                   value={(nodeData.outputVariable as string) || ''}
                   onChange={(e) => handleDataChange('outputVariable', e.target.value)}
                 />
                 <p className="text-[10px] text-muted-foreground">
-                  Store split order results. Access: {`{{splitResult.orders}}`}
+                  Variable name only (no {`{{}}`}). Use {`{{splitResult.results}}`} in other nodes.
                 </p>
               </div>
               <p className="text-xs text-muted-foreground">
@@ -1244,14 +1244,14 @@ export function ConfigPanel() {
               <div className="space-y-2">
                 <Label>Output Variable</Label>
                 <Input
-                  placeholder="e.g., quotes"
+                  placeholder="quotes"
                   value={(nodeData.outputVariable as string) || 'quotes'}
                   onChange={(e) => handleDataChange('outputVariable', e.target.value)}
                 />
+                <p className="text-[10px] text-muted-foreground">
+                  Variable name only. Use {`{{quotes.results[0].data.ltp}}`} in other nodes.
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Fetches quotes for multiple symbols at once
-              </p>
             </>
           )}
 
@@ -1341,12 +1341,12 @@ export function ConfigPanel() {
               <div className="space-y-2">
                 <Label>Output Variable</Label>
                 <Input
-                  placeholder="e.g., quote"
+                  placeholder="quote"
                   value={(nodeData.outputVariable as string) || ''}
                   onChange={(e) => handleDataChange('outputVariable', e.target.value)}
                 />
                 <p className="text-[10px] text-muted-foreground">
-                  Access: {`{{quote.ltp}}`}, {`{{quote.open}}`}, {`{{quote.high}}`}, {`{{quote.low}}`}
+                  Variable name only. Use {`{{quote.data.ltp}}`}, {`{{quote.data.open}}`} in other nodes.
                 </p>
               </div>
             </>
@@ -1384,12 +1384,12 @@ export function ConfigPanel() {
               <div className="space-y-2">
                 <Label>Output Variable</Label>
                 <Input
-                  placeholder="e.g., depth"
+                  placeholder="depth"
                   value={(nodeData.outputVariable as string) || ''}
                   onChange={(e) => handleDataChange('outputVariable', e.target.value)}
                 />
                 <p className="text-[10px] text-muted-foreground">
-                  Access: {`{{depth.buy[0].price}}`}, {`{{depth.sell[0].price}}`}
+                  Variable name only. Use {`{{depth.data.bids[0].price}}`} in other nodes.
                 </p>
               </div>
             </>
@@ -1445,12 +1445,12 @@ export function ConfigPanel() {
               <div className="space-y-2">
                 <Label>Output Variable</Label>
                 <Input
-                  placeholder="e.g., position"
+                  placeholder="position"
                   value={(nodeData.outputVariable as string) || ''}
                   onChange={(e) => handleDataChange('outputVariable', e.target.value)}
                 />
                 <p className="text-[10px] text-muted-foreground">
-                  Access: {`{{position.quantity}}`}, {`{{position.pnl}}`}
+                  Variable name only. Use {`{{position.quantity}}`} in other nodes.
                 </p>
               </div>
             </>
@@ -1517,12 +1517,12 @@ export function ConfigPanel() {
               <div className="space-y-2">
                 <Label>Output Variable</Label>
                 <Input
-                  placeholder="e.g., ohlcv"
+                  placeholder="ohlcv"
                   value={(nodeData.outputVariable as string) || ''}
                   onChange={(e) => handleDataChange('outputVariable', e.target.value)}
                 />
                 <p className="text-[10px] text-muted-foreground">
-                  Access: {`{{ohlcv[0].close}}`}, {`{{ohlcv.length}}`}
+                  Variable name only. Returns DataFrame as string.
                 </p>
               </div>
             </>
@@ -1559,12 +1559,12 @@ export function ConfigPanel() {
               <div className="space-y-2">
                 <Label>Output Variable</Label>
                 <Input
-                  placeholder="e.g., expiries"
+                  placeholder="expiries"
                   value={(nodeData.outputVariable as string) || ''}
                   onChange={(e) => handleDataChange('outputVariable', e.target.value)}
                 />
                 <p className="text-[10px] text-muted-foreground">
-                  Access: {`{{expiries[0]}}`} for nearest expiry
+                  Variable name only. Use {`{{expiries.data[0]}}`} for nearest expiry.
                 </p>
               </div>
             </>
