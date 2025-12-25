@@ -615,8 +615,42 @@ class NodeExecutor:
         return []
 
     def execute_basket_order(self, node_data: dict) -> dict:
-        """Execute Basket Order node"""
-        orders = node_data.get("orders", [])
+        """Execute Basket Order node - parses CSV-like orders string"""
+        orders_raw = node_data.get("orders", "")
+        product = self.get_str(node_data, "product", "MIS")
+        price_type = self.get_str(node_data, "priceType", "MARKET")
+
+        # Parse orders string (format: SYMBOL,EXCHANGE,ACTION,QTY per line)
+        orders = []
+        if isinstance(orders_raw, str):
+            for line in orders_raw.strip().split('\n'):
+                line = line.strip()
+                if not line:
+                    continue
+                parts = [p.strip() for p in line.split(',')]
+                if len(parts) >= 4:
+                    try:
+                        order = {
+                            "symbol": self.context.interpolate(parts[0]),
+                            "exchange": self.context.interpolate(parts[1]),
+                            "action": self.context.interpolate(parts[2]).upper(),
+                            "quantity": int(self.context.interpolate(parts[3])),
+                            "pricetype": price_type,
+                            "product": product
+                        }
+                        orders.append(order)
+                    except (ValueError, IndexError) as e:
+                        self.log(f"Skipping invalid order line '{line}': {e}", "warn")
+                else:
+                    self.log(f"Skipping malformed order line: '{line}' (expected SYMBOL,EXCHANGE,ACTION,QTY)", "warn")
+        elif isinstance(orders_raw, list):
+            # Already a list of dicts (for backwards compatibility)
+            orders = orders_raw
+
+        if not orders:
+            self.log("No valid orders to place", "warn")
+            return {"status": "error", "message": "No valid orders"}
+
         self.log(f"Placing basket order with {len(orders)} orders")
         result = self.client.basket_order(orders=orders)
         self.log(

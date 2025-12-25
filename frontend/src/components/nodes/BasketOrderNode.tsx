@@ -15,7 +15,10 @@ interface BasketOrderNodeProps {
 }
 
 export const BasketOrderNode = memo(({ data, selected }: BasketOrderNodeProps) => {
-  const orderCount = data.orders?.length || 0
+  // Orders is a multi-line string, count non-empty lines
+  const orderCount = typeof data.orders === 'string'
+    ? data.orders.split('\n').filter(line => line.trim()).length
+    : 0
 
   return (
     <div
