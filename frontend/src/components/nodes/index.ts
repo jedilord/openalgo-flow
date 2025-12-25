@@ -69,6 +69,7 @@ import { DelayNode } from './DelayNode'
 import { WaitUntilNode } from './WaitUntilNode'
 import { GroupNode } from './GroupNode'
 import { VariableNode } from './VariableNode'
+import { MathExpressionNode } from './MathExpressionNode'
 import { LogNode } from './LogNode'
 
 // Base Components
@@ -133,6 +134,7 @@ export {
   WaitUntilNode,
   GroupNode,
   VariableNode,
+  MathExpressionNode,
   LogNode,
   HolidaysNode,
   TimingsNode,
@@ -207,6 +209,7 @@ export const nodeTypes = {
   waitUntil: WaitUntilNode,
   group: GroupNode,
   variable: VariableNode,
+  mathExpression: MathExpressionNode,
   log: LogNode,
   holidays: HolidaysNode,
   timings: TimingsNode,

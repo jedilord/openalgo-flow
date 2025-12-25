@@ -1613,6 +1613,109 @@ class NodeExecutor:
             self.log(f"Variable operation failed: {e}", "error")
             return {"status": "error", "message": str(e)}
 
+    def execute_math_expression(self, node_data: dict) -> dict:
+        """Execute Math Expression node - evaluate mathematical expressions
+
+        Supports:
+        - Basic operators: +, -, *, /, %, ** (power)
+        - Parentheses for grouping
+        - Variable interpolation: {{variableName}}
+        - Numbers (integers and decimals)
+
+        Example: ({{ltp}} * {{lotSize}}) + {{brokerage}}
+        """
+        expression = node_data.get("expression", "")
+        output_var = node_data.get("outputVariable", "result")
+
+        if not expression:
+            self.log("No expression provided", "error")
+            return {"status": "error", "message": "No expression provided"}
+
+        self.log(f"Evaluating: {expression}")
+
+        try:
+            # Step 1: Interpolate variables
+            interpolated = self.context.interpolate(expression)
+            self.log(f"Interpolated: {interpolated}")
+
+            # Step 2: Safely evaluate the expression
+            # Only allow safe mathematical operations
+            result = self._safe_eval_math(interpolated)
+
+            # Step 3: Store result in output variable
+            self.context.set_variable(output_var, result)
+            self.log(f"Result: {output_var} = {result}")
+
+            return {
+                "status": "success",
+                "expression": expression,
+                "interpolated": interpolated,
+                "result": result,
+                "outputVariable": output_var
+            }
+
+        except Exception as e:
+            self.log(f"Math expression failed: {e}", "error")
+            return {"status": "error", "message": str(e)}
+
+    def _safe_eval_math(self, expression: str) -> float:
+        """Safely evaluate a mathematical expression
+
+        Uses Python's ast module to parse and evaluate only safe math operations.
+        Prevents arbitrary code execution.
+        """
+        import ast
+        import operator as op
+
+        # Supported operators
+        operators = {
+            ast.Add: op.add,
+            ast.Sub: op.sub,
+            ast.Mult: op.mul,
+            ast.Div: op.truediv,
+            ast.Mod: op.mod,
+            ast.Pow: op.pow,
+            ast.USub: op.neg,
+            ast.UAdd: op.pos,
+        }
+
+        def _eval(node):
+            if isinstance(node, ast.Constant):  # Python 3.8+
+                if isinstance(node.value, (int, float)):
+                    return node.value
+                raise ValueError(f"Unsupported constant: {node.value}")
+            elif isinstance(node, ast.Num):  # Python 3.7 compatibility
+                return node.n
+            elif isinstance(node, ast.BinOp):
+                left = _eval(node.left)
+                right = _eval(node.right)
+                op_type = type(node.op)
+                if op_type not in operators:
+                    raise ValueError(f"Unsupported operator: {op_type.__name__}")
+                return operators[op_type](left, right)
+            elif isinstance(node, ast.UnaryOp):
+                operand = _eval(node.operand)
+                op_type = type(node.op)
+                if op_type not in operators:
+                    raise ValueError(f"Unsupported unary operator: {op_type.__name__}")
+                return operators[op_type](operand)
+            elif isinstance(node, ast.Expression):
+                return _eval(node.body)
+            else:
+                raise ValueError(f"Unsupported expression type: {type(node).__name__}")
+
+        # Clean expression - remove any non-math characters
+        cleaned = expression.strip()
+        if not cleaned:
+            raise ValueError("Empty expression")
+
+        # Parse and evaluate
+        try:
+            tree = ast.parse(cleaned, mode='eval')
+            return float(_eval(tree))
+        except SyntaxError as e:
+            raise ValueError(f"Invalid expression syntax: {e}")
+
     def execute_position_check(self, node_data: dict) -> dict:
         """Execute Position Check node - supports {{variable}} interpolation"""
         symbol = self.get_str(node_data, "symbol", "")
@@ -2208,6 +2311,8 @@ async def execute_node_chain(
         result = executor.execute_log(node_data)
     elif node_type == "variable":
         result = executor.execute_variable(node_data)
+    elif node_type == "mathExpression":
+        result = executor.execute_math_expression(node_data)
     elif node_type == "positionCheck":
         result = executor.execute_position_check(node_data)
     elif node_type == "fundCheck":

@@ -527,6 +527,13 @@ export interface VariableNodeData {
   jsonPath?: string // For accessing nested JSON properties like "data.ltp"
 }
 
+/** Math Expression Node - Evaluate mathematical expressions */
+export interface MathExpressionNodeData {
+  label?: string
+  expression: string // e.g., "({{ltp}} * {{lotSize}}) + {{brokerage}}"
+  outputVariable: string // Variable to store result
+}
+
 /** Loop Node - Iterate over items */
 export interface LoopNodeData {
   label?: string
@@ -606,6 +613,7 @@ export type UtilityNodeData =
   | WaitUntilNodeData
   | LogNodeData
   | VariableNodeData
+  | MathExpressionNodeData
   | LoopNodeData
 
 /** Union of all node data types */

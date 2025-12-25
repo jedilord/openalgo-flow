@@ -35,6 +35,7 @@ import {
   RadioTower,
   WifiOff,
   Shield,
+  Sigma,
 } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -414,6 +415,13 @@ export function NodePalette({ onDragStart }: NodePaletteProps) {
       description: 'Store values',
       icon: <Variable className="h-3.5 w-3.5 text-purple-400" />,
       color: 'bg-purple-400/10',
+    },
+    {
+      type: 'mathExpression',
+      label: 'Math',
+      description: 'Calculate expression',
+      icon: <Sigma className="h-3.5 w-3.5 text-purple-500" />,
+      color: 'bg-purple-500/10',
     },
     {
       type: 'log',

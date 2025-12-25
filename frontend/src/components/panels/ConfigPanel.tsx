@@ -1977,6 +1977,48 @@ export function ConfigPanel() {
             </>
           )}
 
+          {/* ===== MATH EXPRESSION NODE ===== */}
+          {nodeType === 'mathExpression' && (
+            <>
+              <div className="space-y-2">
+                <Label>Expression</Label>
+                <textarea
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono"
+                  placeholder="({{ltp}} * {{lotSize}}) + {{brokerage}}"
+                  value={(nodeData.expression as string) || ''}
+                  onChange={(e) => handleDataChange('expression', e.target.value)}
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Supports: +, -, *, /, %, ** (power), parentheses
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Output Variable</Label>
+                <Input
+                  placeholder="e.g., result"
+                  value={(nodeData.outputVariable as string) || 'result'}
+                  onChange={(e) => handleDataChange('outputVariable', e.target.value)}
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Access result: {'{{' + ((nodeData.outputVariable as string) || 'result') + '}}'}
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-border bg-muted/30 p-3">
+                <p className="text-xs font-medium mb-2">Example Expressions:</p>
+                <div className="space-y-1.5 text-[10px] text-muted-foreground font-mono">
+                  <p>{'{{ltp}} * {{qty}}'} - Position value</p>
+                  <p>{'{{price}} * 1.02'} - 2% buffer</p>
+                  <p>{'({{high}} + {{low}}) / 2'} - Average</p>
+                  <p>{'{{entry}} + ({{entry}} * 0.01)'} - 1% target</p>
+                  <p>{'({{exit}} - {{entry}}) * {{qty}}'} - P&L</p>
+                  <p>{'{{capital}} * 0.02 / {{sl}}'} - Position size</p>
+                </div>
+              </div>
+            </>
+          )}
+
           {/* ===== LOG NODE ===== */}
           {nodeType === 'log' && (
             <>
