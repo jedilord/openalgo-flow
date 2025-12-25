@@ -22,6 +22,8 @@ import {
   Variable,
   FileText,
   Group,
+  Webhook,
+  Globe,
 } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -82,6 +84,13 @@ export function NodePalette({ onDragStart }: NodePaletteProps) {
       label: 'Price Alert',
       description: 'Trigger on price',
       icon: <Bell className="h-3.5 w-3.5 text-node-trigger" />,
+      color: 'bg-node-trigger/10',
+    },
+    {
+      type: 'webhookTrigger',
+      label: 'Webhook',
+      description: 'External trigger',
+      icon: <Webhook className="h-3.5 w-3.5 text-node-trigger" />,
       color: 'bg-node-trigger/10',
     },
   ]
@@ -313,6 +322,13 @@ export function NodePalette({ onDragStart }: NodePaletteProps) {
       description: 'Group nodes',
       icon: <Group className="h-3.5 w-3.5 text-muted-foreground" />,
       color: 'bg-muted',
+    },
+    {
+      type: 'httpRequest',
+      label: 'HTTP Request',
+      description: 'API call',
+      icon: <Globe className="h-3.5 w-3.5 text-primary" />,
+      color: 'bg-primary/10',
     },
   ]
 

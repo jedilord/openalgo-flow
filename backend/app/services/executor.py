@@ -800,6 +800,114 @@ class NodeExecutor:
         )
         return result
 
+    def execute_http_request(self, node_data: dict) -> dict:
+        """Execute HTTP Request node - make external API calls
+
+        Supports GET, POST, PUT, DELETE, PATCH methods with custom headers and body.
+        Response is stored in output variable for use in subsequent nodes.
+        """
+        import requests
+
+        method = self.get_str(node_data, "method", "GET").upper()
+        url = self.get_str(node_data, "url", "")
+        headers_raw = node_data.get("headers", {})
+        body = node_data.get("body", "")
+        timeout = self.get_int(node_data, "timeout", 30)
+        content_type = self.get_str(node_data, "contentType", "application/json")
+
+        if not url:
+            self.log("HTTP Request: No URL specified", "error")
+            return {"status": "error", "message": "No URL specified"}
+
+        # Process headers (interpolate variables)
+        headers = {}
+        if isinstance(headers_raw, dict):
+            for key, value in headers_raw.items():
+                headers[key] = self.context.interpolate(str(value)) if self.context else str(value)
+        elif isinstance(headers_raw, str) and headers_raw:
+            # Try to parse as JSON
+            try:
+                import json
+                headers = json.loads(headers_raw)
+            except:
+                pass
+
+        # Add content type if not present
+        if "Content-Type" not in headers and content_type:
+            headers["Content-Type"] = content_type
+
+        # Interpolate URL and body
+        url = self.context.interpolate(url) if self.context else url
+        if isinstance(body, str) and body:
+            body = self.context.interpolate(body) if self.context else body
+
+        self.log(f"HTTP {method} {url}")
+
+        try:
+            # Make the request based on method
+            if method == "GET":
+                response = requests.get(url, headers=headers, timeout=timeout)
+            elif method == "POST":
+                if content_type == "application/json" and isinstance(body, str):
+                    try:
+                        import json
+                        body = json.loads(body)
+                        response = requests.post(url, json=body, headers=headers, timeout=timeout)
+                    except:
+                        response = requests.post(url, data=body, headers=headers, timeout=timeout)
+                else:
+                    response = requests.post(url, data=body, headers=headers, timeout=timeout)
+            elif method == "PUT":
+                if content_type == "application/json" and isinstance(body, str):
+                    try:
+                        import json
+                        body = json.loads(body)
+                        response = requests.put(url, json=body, headers=headers, timeout=timeout)
+                    except:
+                        response = requests.put(url, data=body, headers=headers, timeout=timeout)
+                else:
+                    response = requests.put(url, data=body, headers=headers, timeout=timeout)
+            elif method == "DELETE":
+                response = requests.delete(url, headers=headers, timeout=timeout)
+            elif method == "PATCH":
+                if content_type == "application/json" and isinstance(body, str):
+                    try:
+                        import json
+                        body = json.loads(body)
+                        response = requests.patch(url, json=body, headers=headers, timeout=timeout)
+                    except:
+                        response = requests.patch(url, data=body, headers=headers, timeout=timeout)
+                else:
+                    response = requests.patch(url, data=body, headers=headers, timeout=timeout)
+            else:
+                self.log(f"HTTP Request: Unsupported method '{method}'", "error")
+                return {"status": "error", "message": f"Unsupported method: {method}"}
+
+            # Parse response
+            try:
+                response_data = response.json()
+            except:
+                response_data = response.text
+
+            result = {
+                "status": "success" if response.ok else "error",
+                "statusCode": response.status_code,
+                "data": response_data,
+                "headers": dict(response.headers),
+            }
+
+            self.log(f"HTTP Response: {response.status_code}")
+            self.store_output(node_data, result)
+
+            return result
+
+        except requests.exceptions.Timeout:
+            self.log(f"HTTP Request timed out after {timeout}s", "error")
+            return {"status": "error", "message": f"Request timed out after {timeout}s"}
+        except requests.exceptions.RequestException as e:
+            self.log(f"HTTP Request failed: {str(e)}", "error")
+            return {"status": "error", "message": str(e)}
+
     def execute_delay(self, node_data: dict) -> dict:
         """Execute Delay node - supports seconds, minutes, hours"""
         import time as time_module
@@ -1371,8 +1479,13 @@ class NodeExecutor:
         }
 
 
-async def execute_workflow(workflow_id: int) -> dict:
-    """Execute a workflow with concurrent execution protection"""
+async def execute_workflow(workflow_id: int, webhook_data: Optional[Dict[str, Any]] = None) -> dict:
+    """Execute a workflow with concurrent execution protection
+
+    Args:
+        workflow_id: The workflow to execute
+        webhook_data: Optional data from webhook trigger, accessible via {{webhook.field}}
+    """
     # Get the lock for this workflow
     lock = get_workflow_lock(workflow_id)
 
@@ -1405,6 +1518,11 @@ async def execute_workflow(workflow_id: int) -> dict:
 
             logs = []
             context = WorkflowContext()
+
+            # Inject webhook data into context if provided
+            if webhook_data:
+                context.set_variable("webhook", webhook_data)
+                logger.info(f"Webhook data injected: {webhook_data}")
 
             # Broadcast execution started
             try:
@@ -1598,6 +1716,8 @@ async def execute_node_chain(
         result = executor.execute_expiry(node_data)
     elif node_type == "telegramAlert":
         result = executor.execute_telegram_alert(node_data)
+    elif node_type == "httpRequest":
+        result = executor.execute_http_request(node_data)
     elif node_type == "delay":
         result = executor.execute_delay(node_data)
     elif node_type == "waitUntil":

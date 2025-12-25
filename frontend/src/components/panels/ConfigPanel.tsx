@@ -143,10 +143,21 @@ const CONDITION_TYPES = [
   { value: 'custom', label: 'Custom', description: 'Custom condition' },
 ]
 
+// HTTP Methods
+const HTTP_METHODS = [
+  { value: 'GET', label: 'GET', color: 'text-green-500' },
+  { value: 'POST', label: 'POST', color: 'text-blue-500' },
+  { value: 'PUT', label: 'PUT', color: 'text-orange-500' },
+  { value: 'DELETE', label: 'DELETE', color: 'text-red-500' },
+  { value: 'PATCH', label: 'PATCH', color: 'text-purple-500' },
+]
+
 // Node type to display name mapping
 const NODE_TITLES: Record<string, string> = {
   start: 'Schedule Trigger',
   priceAlert: 'Price Alert',
+  webhookTrigger: 'Webhook Trigger',
+  httpRequest: 'HTTP Request',
   placeOrder: 'Place Order',
   smartOrder: 'Smart Order',
   optionsOrder: 'Options Order',
@@ -400,6 +411,131 @@ export function ConfigPanel() {
                   value={(nodeData.message as string) || ''}
                   onChange={(e) => handleDataChange('message', e.target.value)}
                 />
+              </div>
+            </>
+          )}
+
+          {/* ===== WEBHOOK TRIGGER NODE ===== */}
+          {nodeType === 'webhookTrigger' && (
+            <>
+              <div className="space-y-2">
+                <Label>Label (Optional)</Label>
+                <Input
+                  placeholder="e.g., TradingView Alert"
+                  value={(nodeData.label as string) || ''}
+                  onChange={(e) => handleDataChange('label', e.target.value)}
+                />
+              </div>
+              <div className="rounded-lg border border-border bg-muted/30 p-3">
+                <p className="text-xs font-medium mb-2">How it works:</p>
+                <div className="space-y-1 text-[10px] text-muted-foreground">
+                  <p>External systems can trigger this workflow via HTTP POST request.</p>
+                  <p>Enable webhook in workflow settings to get your unique URL.</p>
+                  <p>Webhook payload is available as {`{{webhook}}`} variable.</p>
+                </div>
+              </div>
+              <div className="rounded-lg border border-border bg-primary/5 p-3">
+                <p className="text-xs font-medium mb-2">Variable Access:</p>
+                <div className="space-y-1 text-[10px] font-mono text-muted-foreground">
+                  <p>{`{{webhook.symbol}}`} - Symbol from payload</p>
+                  <p>{`{{webhook.action}}`} - Action (BUY/SELL)</p>
+                  <p>{`{{webhook.price}}`} - Price from payload</p>
+                  <p>{`{{webhook.quantity}}`} - Quantity</p>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ===== HTTP REQUEST NODE ===== */}
+          {nodeType === 'httpRequest' && (
+            <>
+              <div className="space-y-2">
+                <Label>Method</Label>
+                <div className="grid grid-cols-5 gap-1">
+                  {HTTP_METHODS.map((method) => (
+                    <button
+                      key={method.value}
+                      type="button"
+                      onClick={() => handleDataChange('method', method.value)}
+                      className={cn(
+                        'rounded-md border py-1.5 text-[10px] font-bold transition-colors',
+                        nodeData.method === method.value
+                          ? `bg-primary text-primary-foreground`
+                          : 'border-border bg-muted text-muted-foreground hover:bg-accent'
+                      )}
+                    >
+                      {method.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>URL</Label>
+                <Input
+                  placeholder="https://api.example.com/endpoint"
+                  value={(nodeData.url as string) || ''}
+                  onChange={(e) => handleDataChange('url', e.target.value)}
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Supports variables: {`{{webhook.url}}`}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Headers (JSON)</Label>
+                <textarea
+                  className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-xs font-mono ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  placeholder='{"Authorization": "Bearer {{token}}"}'
+                  value={(nodeData.headers as string) || ''}
+                  onChange={(e) => handleDataChange('headers', e.target.value)}
+                />
+              </div>
+
+              {['POST', 'PUT', 'PATCH'].includes((nodeData.method as string) || 'GET') && (
+                <div className="space-y-2">
+                  <Label>Body (JSON)</Label>
+                  <textarea
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-xs font-mono ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    placeholder='{"symbol": "{{webhook.symbol}}", "price": {{quote.ltp}}}'
+                    value={(nodeData.body as string) || ''}
+                    onChange={(e) => handleDataChange('body', e.target.value)}
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>Timeout (ms)</Label>
+                <Input
+                  type="number"
+                  min={1000}
+                  max={60000}
+                  step={1000}
+                  placeholder="30000"
+                  value={(nodeData.timeout as number) || 30000}
+                  onChange={(e) => handleDataChange('timeout', parseInt(e.target.value) || 30000)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Output Variable</Label>
+                <Input
+                  placeholder="apiResponse"
+                  value={(nodeData.outputVariable as string) || ''}
+                  onChange={(e) => handleDataChange('outputVariable', e.target.value)}
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Use {`{{apiResponse.data}}`} to access response body.
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-border bg-muted/30 p-3">
+                <p className="text-xs font-medium mb-2">Response Structure:</p>
+                <div className="space-y-1 text-[10px] font-mono text-muted-foreground">
+                  <p>{`{{apiResponse.status}}`} - HTTP status code</p>
+                  <p>{`{{apiResponse.data}}`} - Response body</p>
+                  <p>{`{{apiResponse.success}}`} - true/false</p>
+                </div>
               </div>
             </>
           )}

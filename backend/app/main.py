@@ -13,6 +13,7 @@ from app.api.routes import settings as settings_router
 from app.api.routes import workflows as workflows_router
 from app.api.routes import symbols as symbols_router
 from app.api.routes import auth as auth_router
+from app.api.routes import webhook as webhook_router
 from app.api import websocket as websocket_router
 
 # Configure logging
@@ -61,6 +62,7 @@ app.include_router(auth_router.router, prefix=settings.api_prefix)
 app.include_router(settings_router.router, prefix=settings.api_prefix)
 app.include_router(workflows_router.router, prefix=settings.api_prefix)
 app.include_router(symbols_router.router, prefix=settings.api_prefix)
+app.include_router(webhook_router.router, prefix=settings.api_prefix)  # Public webhook endpoint
 app.include_router(websocket_router.router)
 
 

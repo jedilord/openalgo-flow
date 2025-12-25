@@ -303,3 +303,124 @@ async def import_workflow(
     await db.refresh(db_workflow)
 
     return db_workflow
+
+
+# =============================================================================
+# WEBHOOK MANAGEMENT
+# =============================================================================
+
+@router.get("/{workflow_id}/webhook")
+@limiter.limit(READ_LIMIT)
+async def get_webhook_info(
+    request: Request,
+    workflow_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: bool = Depends(get_current_admin)
+):
+    """Get webhook information for a workflow"""
+    result = await db.execute(
+        select(Workflow).where(Workflow.id == workflow_id)
+    )
+    workflow = result.scalar_one_or_none()
+
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    # Generate token if not exists
+    if not workflow.webhook_token:
+        from app.models.workflow import generate_webhook_token
+        workflow.webhook_token = generate_webhook_token()
+        await db.commit()
+        await db.refresh(workflow)
+
+    return {
+        "webhook_token": workflow.webhook_token,
+        "webhook_enabled": workflow.webhook_enabled,
+        "webhook_url": f"/api/webhook/{workflow.webhook_token}"
+    }
+
+
+@router.post("/{workflow_id}/webhook/enable")
+@limiter.limit(API_LIMIT)
+async def enable_webhook(
+    request: Request,
+    workflow_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: bool = Depends(get_current_admin)
+):
+    """Enable webhook for a workflow"""
+    result = await db.execute(
+        select(Workflow).where(Workflow.id == workflow_id)
+    )
+    workflow = result.scalar_one_or_none()
+
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    # Generate token if not exists
+    if not workflow.webhook_token:
+        from app.models.workflow import generate_webhook_token
+        workflow.webhook_token = generate_webhook_token()
+
+    workflow.webhook_enabled = True
+    await db.commit()
+
+    return {
+        "status": "success",
+        "message": "Webhook enabled",
+        "webhook_token": workflow.webhook_token,
+        "webhook_url": f"/api/webhook/{workflow.webhook_token}"
+    }
+
+
+@router.post("/{workflow_id}/webhook/disable")
+@limiter.limit(API_LIMIT)
+async def disable_webhook(
+    request: Request,
+    workflow_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: bool = Depends(get_current_admin)
+):
+    """Disable webhook for a workflow"""
+    result = await db.execute(
+        select(Workflow).where(Workflow.id == workflow_id)
+    )
+    workflow = result.scalar_one_or_none()
+
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    workflow.webhook_enabled = False
+    await db.commit()
+
+    return {"status": "success", "message": "Webhook disabled"}
+
+
+@router.post("/{workflow_id}/webhook/regenerate")
+@limiter.limit(API_LIMIT)
+async def regenerate_webhook_token(
+    request: Request,
+    workflow_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: bool = Depends(get_current_admin)
+):
+    """Regenerate webhook token for a workflow"""
+    result = await db.execute(
+        select(Workflow).where(Workflow.id == workflow_id)
+    )
+    workflow = result.scalar_one_or_none()
+
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    from app.models.workflow import generate_webhook_token
+    workflow.webhook_token = generate_webhook_token()
+    await db.commit()
+    await db.refresh(workflow)
+
+    return {
+        "status": "success",
+        "message": "Webhook token regenerated",
+        "webhook_token": workflow.webhook_token,
+        "webhook_url": f"/api/webhook/{workflow.webhook_token}"
+    }

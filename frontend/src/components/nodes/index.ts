@@ -6,6 +6,8 @@
 // Trigger Nodes
 import { StartNode } from './StartNode'
 import { PriceAlertNode } from './PriceAlertNode'
+import { WebhookTriggerNode } from './WebhookTriggerNode'
+import { HttpRequestNode } from './HttpRequestNode'
 
 // Action Nodes
 import { PlaceOrderNode } from './PlaceOrderNode'
@@ -57,6 +59,8 @@ export {
   // Triggers
   StartNode,
   PriceAlertNode,
+  WebhookTriggerNode,
+  HttpRequestNode,
   // Actions
   PlaceOrderNode,
   SmartOrderNode,
@@ -104,6 +108,8 @@ export const nodeTypes = {
   // Triggers
   start: StartNode,
   priceAlert: PriceAlertNode,
+  webhookTrigger: WebhookTriggerNode,
+  httpRequest: HttpRequestNode,
 
   // Actions
   placeOrder: PlaceOrderNode,

@@ -1,6 +1,12 @@
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey, func, JSON
 from sqlalchemy.orm import relationship
+import secrets
 from app.core.database import Base
+
+
+def generate_webhook_token():
+    """Generate a unique webhook token"""
+    return secrets.token_urlsafe(32)
 
 
 class Workflow(Base):
@@ -13,6 +19,8 @@ class Workflow(Base):
     edges = Column(JSON, default=list)
     is_active = Column(Boolean, default=False)
     schedule_job_id = Column(String(255), nullable=True)
+    webhook_token = Column(String(64), unique=True, nullable=True, default=generate_webhook_token)
+    webhook_enabled = Column(Boolean, default=False)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
