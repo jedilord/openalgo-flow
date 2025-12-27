@@ -72,7 +72,9 @@ Open http://localhost:5173 in your browser.
 
 ```bash
 cd backend
-uv sync
+cp .env.example .env    # Copy environment template
+uv sync                 # Install dependencies
+uv run migration/migrate_all.py  # Run database migrations
 ```
 
 ### Frontend Setup
@@ -110,6 +112,7 @@ npm install
 |------|-------------|
 | Schedule | Start workflow at specified time (once/daily/weekly) |
 | Price Alert | Trigger when price crosses threshold |
+| Webhook | External HTTP trigger with secret authentication |
 
 ### Actions - Orders
 
@@ -249,6 +252,132 @@ Use variables to pass data between nodes:
 | POST | /api/workflows/{id}/activate | Activate |
 | POST | /api/workflows/{id}/deactivate | Deactivate |
 | POST | /api/workflows/{id}/execute | Run now |
+| GET | /api/workflows/{id}/webhook | Get webhook info |
+| POST | /api/workflows/{id}/webhook/enable | Enable webhook |
+| POST | /api/workflows/{id}/webhook/disable | Disable webhook |
+| POST | /api/workflows/{id}/webhook/regenerate | Regenerate URL & secret |
+| POST | /api/webhook/{token} | Trigger workflow via webhook |
+| POST | /api/webhook/{token}/{symbol} | Trigger with symbol in URL |
+
+## Environment Configuration
+
+Create `backend/.env` file:
+
+```bash
+cd backend
+cp .env.example .env
+```
+
+Then edit the `.env` file:
+
+```env
+# Debug mode (default: false)
+DEBUG=false
+
+# Server configuration
+HOST=127.0.0.1
+PORT=8000
+
+# Database URL
+DATABASE_URL=sqlite+aiosqlite:///./openalgo_flow.db
+
+# Frontend URL (for CORS)
+FRONTEND_URL=http://localhost:5173
+
+# Webhook host URL (for generating webhook URLs)
+# Set this to your public URL when deploying
+WEBHOOK_HOST_URL=http://127.0.0.1:8000
+```
+
+## Database Migrations
+
+When updating the database schema, run migrations:
+
+```bash
+cd backend
+uv run migration/migrate_all.py
+```
+
+## Webhook Trigger
+
+OpenAlgo Flow supports external webhook triggers, allowing you to trigger workflows from TradingView, custom scripts, or any HTTP client.
+
+### How It Works
+
+1. Each workflow has a unique **Webhook URL** and **Webhook Secret**
+2. External systems send a POST request with JSON payload
+3. The secret is validated before execution
+4. Payload data is available as `{{webhook.*}}` variables
+
+### Webhook URL Formats
+
+```
+# Generic webhook
+POST https://your-host/api/webhook/{token}
+
+# With symbol in URL
+POST https://your-host/api/webhook/{token}/{symbol}
+```
+
+### Required JSON Payload
+
+```json
+{
+  "secret": "your_webhook_secret_here",
+  "symbol": "RELIANCE",
+  "action": "BUY",
+  "quantity": 10,
+  "price": 2500.50
+}
+```
+
+The `secret` field is **required** for authentication. You can add any custom fields.
+
+### Accessing Webhook Data
+
+| Variable | Description |
+|----------|-------------|
+| `{{webhook.symbol}}` | Symbol from URL or payload |
+| `{{webhook.action}}` | Action (BUY/SELL) |
+| `{{webhook.price}}` | Price from payload |
+| `{{webhook.quantity}}` | Quantity from payload |
+| `{{webhook.custom_field}}` | Any custom field you send |
+
+### Managing Webhooks
+
+**From Dashboard:**
+1. Click the menu (⋮) on any workflow card
+2. Select "Webhook"
+3. Enable webhook and copy URL & secret
+
+**From Editor:**
+1. Add a "Webhook Trigger" node
+2. URL and secret are displayed in the config panel
+3. Set symbol for dynamic URL generation
+
+### Example: TradingView Alert
+
+1. Create workflow with Webhook Trigger node
+2. Enable webhook from Dashboard
+3. In TradingView, create alert with webhook URL
+4. Set message body:
+
+```json
+{
+  "secret": "your_secret",
+  "symbol": "{{ticker}}",
+  "action": "{{strategy.order.action}}",
+  "price": {{close}},
+  "quantity": 10
+}
+```
+
+### Security
+
+- Each workflow has unique token (URL) and secret
+- Secret is validated on every request
+- Failed auth returns 401 Unauthorized
+- Rate limit: 30 requests/minute per endpoint
 
 ## Tech Stack
 

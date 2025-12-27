@@ -2128,9 +2128,11 @@ async def execute_workflow(workflow_id: int, webhook_data: Optional[Dict[str, An
                 nodes = workflow.nodes or []
                 edges = workflow.edges or []
 
-                start_node = next((n for n in nodes if n.get("type") == "start"), None)
+                # Find trigger node (start, webhookTrigger, or priceAlert)
+                trigger_types = ["start", "webhookTrigger", "priceAlert"]
+                start_node = next((n for n in nodes if n.get("type") in trigger_types), None)
                 if not start_node:
-                    raise Exception("No start node found")
+                    raise Exception("No trigger node found (start, webhookTrigger, or priceAlert)")
 
                 # Build edge map for traversal (source -> outgoing edges)
                 edge_map: Dict[str, List[dict]] = {}
@@ -2464,10 +2466,23 @@ async def activate_workflow(workflow_id: int, db: AsyncSession) -> dict:
         return {"status": "error", "message": "Workflow not found"}
 
     nodes = workflow.nodes or []
-    start_node = next((n for n in nodes if n.get("type") == "start"), None)
+
+    # Find trigger node (start, webhookTrigger, or priceAlert)
+    trigger_types = ["start", "webhookTrigger", "priceAlert"]
+    start_node = next((n for n in nodes if n.get("type") in trigger_types), None)
 
     if not start_node:
-        return {"status": "error", "message": "No start node found"}
+        return {"status": "error", "message": "No trigger node found (start, webhookTrigger, or priceAlert)"}
+
+    # For webhook triggers, just mark as active (no scheduling needed)
+    if start_node.get("type") == "webhookTrigger":
+        workflow.is_active = True
+        await db.commit()
+        return {
+            "status": "success",
+            "message": "Webhook workflow activated. Trigger via webhook URL.",
+            "trigger_type": "webhook"
+        }
 
     start_data = start_node.get("data", {})
     schedule_type = start_data.get("scheduleType", "daily")

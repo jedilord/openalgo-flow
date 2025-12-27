@@ -9,6 +9,11 @@ def generate_webhook_token():
     return secrets.token_urlsafe(32)
 
 
+def generate_webhook_secret():
+    """Generate a unique webhook secret for message validation"""
+    return secrets.token_hex(32)
+
+
 class Workflow(Base):
     __tablename__ = "workflows"
 
@@ -20,6 +25,7 @@ class Workflow(Base):
     is_active = Column(Boolean, default=False)
     schedule_job_id = Column(String(255), nullable=True)
     webhook_token = Column(String(64), unique=True, nullable=True, default=generate_webhook_token)
+    webhook_secret = Column(String(64), nullable=True, default=generate_webhook_secret)
     webhook_enabled = Column(Boolean, default=False)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

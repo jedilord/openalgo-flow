@@ -8,6 +8,7 @@ from datetime import datetime
 from app.core.database import get_db
 from app.core.auth import get_current_admin
 from app.core.rate_limit import limiter, API_LIMIT, EXECUTE_LIMIT, READ_LIMIT
+from app.core.config import settings
 from app.models.workflow import Workflow, WorkflowExecution
 from app.schemas.workflow import (
     WorkflowCreate,
@@ -326,17 +327,27 @@ async def get_webhook_info(
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
-    # Generate token if not exists
+    # Generate token and secret if not exists
+    needs_update = False
     if not workflow.webhook_token:
         from app.models.workflow import generate_webhook_token
         workflow.webhook_token = generate_webhook_token()
+        needs_update = True
+    if not workflow.webhook_secret:
+        from app.models.workflow import generate_webhook_secret
+        workflow.webhook_secret = generate_webhook_secret()
+        needs_update = True
+    if needs_update:
         await db.commit()
         await db.refresh(workflow)
 
+    base_url = f"{settings.webhook_host_url}/api/webhook/{workflow.webhook_token}"
     return {
         "webhook_token": workflow.webhook_token,
+        "webhook_secret": workflow.webhook_secret,
         "webhook_enabled": workflow.webhook_enabled,
-        "webhook_url": f"/api/webhook/{workflow.webhook_token}"
+        "webhook_url": base_url,
+        "webhook_url_with_symbol": f"{base_url}/{{symbol}}"
     }
 
 
@@ -357,19 +368,25 @@ async def enable_webhook(
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
-    # Generate token if not exists
+    # Generate token and secret if not exists
     if not workflow.webhook_token:
         from app.models.workflow import generate_webhook_token
         workflow.webhook_token = generate_webhook_token()
+    if not workflow.webhook_secret:
+        from app.models.workflow import generate_webhook_secret
+        workflow.webhook_secret = generate_webhook_secret()
 
     workflow.webhook_enabled = True
     await db.commit()
 
+    base_url = f"{settings.webhook_host_url}/api/webhook/{workflow.webhook_token}"
     return {
         "status": "success",
         "message": "Webhook enabled",
         "webhook_token": workflow.webhook_token,
-        "webhook_url": f"/api/webhook/{workflow.webhook_token}"
+        "webhook_secret": workflow.webhook_secret,
+        "webhook_url": base_url,
+        "webhook_url_with_symbol": f"{base_url}/{{symbol}}"
     }
 
 
@@ -413,14 +430,47 @@ async def regenerate_webhook_token(
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
-    from app.models.workflow import generate_webhook_token
+    from app.models.workflow import generate_webhook_token, generate_webhook_secret
     workflow.webhook_token = generate_webhook_token()
+    workflow.webhook_secret = generate_webhook_secret()
+    await db.commit()
+    await db.refresh(workflow)
+
+    base_url = f"{settings.webhook_host_url}/api/webhook/{workflow.webhook_token}"
+    return {
+        "status": "success",
+        "message": "Webhook token and secret regenerated",
+        "webhook_token": workflow.webhook_token,
+        "webhook_secret": workflow.webhook_secret,
+        "webhook_url": base_url,
+        "webhook_url_with_symbol": f"{base_url}/{{symbol}}"
+    }
+
+
+@router.post("/{workflow_id}/webhook/regenerate-secret")
+@limiter.limit(API_LIMIT)
+async def regenerate_webhook_secret(
+    request: Request,
+    workflow_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: bool = Depends(get_current_admin)
+):
+    """Regenerate webhook secret for a workflow (keeps the same URL)"""
+    result = await db.execute(
+        select(Workflow).where(Workflow.id == workflow_id)
+    )
+    workflow = result.scalar_one_or_none()
+
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    from app.models.workflow import generate_webhook_secret
+    workflow.webhook_secret = generate_webhook_secret()
     await db.commit()
     await db.refresh(workflow)
 
     return {
         "status": "success",
-        "message": "Webhook token regenerated",
-        "webhook_token": workflow.webhook_token,
-        "webhook_url": f"/api/webhook/{workflow.webhook_token}"
+        "message": "Webhook secret regenerated",
+        "webhook_secret": workflow.webhook_secret
     }

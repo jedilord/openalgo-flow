@@ -57,6 +57,7 @@ backend/*.db
 backend/data/
 backend/.venv/
 backend/uv.lock
+backend/.env
 
 # Temporary files
 *.tmp

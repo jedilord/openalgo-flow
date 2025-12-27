@@ -429,6 +429,11 @@ export const DEFAULT_NODE_DATA = {
     condition: 'above' as const,
     price: 0,
   },
+  webhookTrigger: {
+    label: '',
+    symbol: '',
+    exchange: 'NSE',
+  },
   placeOrder: {
     symbol: '',
     exchange: 'NSE',

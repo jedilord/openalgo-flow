@@ -270,6 +270,52 @@ export const workflowsApi = {
       body: JSON.stringify(data),
     }
   ),
+
+  // Webhook management
+  getWebhook: (id: number) => request<{
+    webhook_token: string;
+    webhook_secret: string;
+    webhook_enabled: boolean;
+    webhook_url: string;
+    webhook_url_with_symbol: string;
+  }>(`${API_ENDPOINTS.WORKFLOWS}/${id}/webhook`),
+
+  enableWebhook: (id: number) => request<{
+    status: string;
+    message: string;
+    webhook_token: string;
+    webhook_secret: string;
+    webhook_url: string;
+    webhook_url_with_symbol: string;
+  }>(`${API_ENDPOINTS.WORKFLOWS}/${id}/webhook/enable`, {
+    method: 'POST',
+  }),
+
+  disableWebhook: (id: number) => request<{
+    status: string;
+    message: string;
+  }>(`${API_ENDPOINTS.WORKFLOWS}/${id}/webhook/disable`, {
+    method: 'POST',
+  }),
+
+  regenerateWebhook: (id: number) => request<{
+    status: string;
+    message: string;
+    webhook_token: string;
+    webhook_secret: string;
+    webhook_url: string;
+    webhook_url_with_symbol: string;
+  }>(`${API_ENDPOINTS.WORKFLOWS}/${id}/webhook/regenerate`, {
+    method: 'POST',
+  }),
+
+  regenerateWebhookSecret: (id: number) => request<{
+    status: string;
+    message: string;
+    webhook_secret: string;
+  }>(`${API_ENDPOINTS.WORKFLOWS}/${id}/webhook/regenerate-secret`, {
+    method: 'POST',
+  }),
 };
 
 // Symbols API

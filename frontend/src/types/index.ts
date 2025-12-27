@@ -31,8 +31,11 @@ export interface PriceAlertNodeData {
 /** Webhook Trigger - Start from external webhook */
 export interface WebhookNodeData {
   label?: string
+  symbol?: string
+  exchange?: string
   webhookId?: string
   webhookUrl?: string
+  webhookUrlWithSymbol?: string
 }
 
 /** Position Trigger - Start when position changes */

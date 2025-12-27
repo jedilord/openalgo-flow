@@ -13,6 +13,11 @@ import {
   XCircle,
   AlertCircle,
   Upload,
+  Webhook,
+  Copy,
+  RefreshCw,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 import { workflowsApi, type WorkflowListItem, type WorkflowExportData } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -35,6 +40,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 
@@ -57,6 +63,8 @@ function WorkflowCard({ workflow }: { workflow: WorkflowListItem }) {
   const navigate = useNavigate()
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const [isWebhookOpen, setIsWebhookOpen] = useState(false)
+  const [showSecret, setShowSecret] = useState(false)
 
   const activateMutation = useMutation({
     mutationFn: () => workflowsApi.activate(workflow.id),
@@ -91,97 +99,303 @@ function WorkflowCard({ workflow }: { workflow: WorkflowListItem }) {
     },
   })
 
+  // Webhook queries and mutations
+  const webhookQuery = useQuery({
+    queryKey: ['webhook', workflow.id],
+    queryFn: () => workflowsApi.getWebhook(workflow.id),
+    enabled: isWebhookOpen,
+  })
+
+  const enableWebhookMutation = useMutation({
+    mutationFn: () => workflowsApi.enableWebhook(workflow.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['webhook', workflow.id] })
+      toast({ title: 'Webhook enabled', variant: 'success' })
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' })
+    },
+  })
+
+  const disableWebhookMutation = useMutation({
+    mutationFn: () => workflowsApi.disableWebhook(workflow.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['webhook', workflow.id] })
+      toast({ title: 'Webhook disabled' })
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' })
+    },
+  })
+
+  const regenerateWebhookMutation = useMutation({
+    mutationFn: () => workflowsApi.regenerateWebhook(workflow.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['webhook', workflow.id] })
+      toast({ title: 'Webhook URL and secret regenerated', variant: 'success' })
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' })
+    },
+  })
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text)
+    toast({ title: `${label} copied to clipboard` })
+  }
+
   return (
-    <Card
-      className={cn(
-        'group cursor-pointer transition-all duration-200 hover:border-primary/50',
-        workflow.is_active && 'border-buy/30'
-      )}
-      onClick={() => navigate(`/editor/${workflow.id}`)}
-    >
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div
-              className={cn(
-                'status-dot',
-                workflow.is_active ? 'active' : 'inactive'
-              )}
-            />
-            <CardTitle className="text-base">{workflow.name}</CardTitle>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation()
-                  navigate(`/editor/${workflow.id}`)
-                }}
-              >
-                Edit
-              </DropdownMenuItem>
-              {workflow.is_active ? (
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    deactivateMutation.mutate()
-                  }}
-                >
-                  <Pause className="mr-2 h-4 w-4" />
-                  Deactivate
-                </DropdownMenuItem>
-              ) : (
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    activateMutation.mutate()
-                  }}
-                >
-                  <Play className="mr-2 h-4 w-4" />
-                  Activate
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-destructive"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  deleteMutation.mutate()
-                }}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-        {workflow.description && (
-          <CardDescription className="line-clamp-2">
-            {workflow.description}
-          </CardDescription>
+    <>
+      <Card
+        className={cn(
+          'group cursor-pointer transition-all duration-200 hover:border-primary/50',
+          workflow.is_active && 'border-buy/30'
         )}
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <StatusIcon status={workflow.last_execution_status} />
-            <span>
-              {workflow.last_execution_status
-                ? `Last: ${workflow.last_execution_status}`
-                : 'No executions'}
+        onClick={() => navigate(`/editor/${workflow.id}`)}
+      >
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div
+                className={cn(
+                  'status-dot',
+                  workflow.is_active ? 'active' : 'inactive'
+                )}
+              />
+              <CardTitle className="text-base">{workflow.name}</CardTitle>
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    navigate(`/editor/${workflow.id}`)
+                  }}
+                >
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsWebhookOpen(true)
+                  }}
+                >
+                  <Webhook className="mr-2 h-4 w-4" />
+                  Webhook
+                </DropdownMenuItem>
+                {workflow.is_active ? (
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      deactivateMutation.mutate()
+                    }}
+                  >
+                    <Pause className="mr-2 h-4 w-4" />
+                    Deactivate
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      activateMutation.mutate()
+                    }}
+                  >
+                    <Play className="mr-2 h-4 w-4" />
+                    Activate
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    deleteMutation.mutate()
+                  }}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          {workflow.description && (
+            <CardDescription className="line-clamp-2">
+              {workflow.description}
+            </CardDescription>
+          )}
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <StatusIcon status={workflow.last_execution_status} />
+              <span>
+                {workflow.last_execution_status
+                  ? `Last: ${workflow.last_execution_status}`
+                  : 'No executions'}
+              </span>
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {new Date(workflow.updated_at).toLocaleDateString()}
             </span>
           </div>
-          <span className="text-xs text-muted-foreground">
-            {new Date(workflow.updated_at).toLocaleDateString()}
-          </span>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      {/* Webhook Settings Dialog */}
+      <Dialog open={isWebhookOpen} onOpenChange={setIsWebhookOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Webhook className="h-5 w-5" />
+              Webhook Settings
+            </DialogTitle>
+            <DialogDescription>
+              Configure webhook for "{workflow.name}"
+            </DialogDescription>
+          </DialogHeader>
+
+          {webhookQuery.isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : webhookQuery.data ? (
+            <div className="space-y-6 py-4">
+              {/* Enable/Disable Toggle */}
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div>
+                  <Label className="text-base">Enable Webhook</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Allow external systems to trigger this workflow
+                  </p>
+                </div>
+                <Switch
+                  checked={webhookQuery.data.webhook_enabled}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      enableWebhookMutation.mutate()
+                    } else {
+                      disableWebhookMutation.mutate()
+                    }
+                  }}
+                  disabled={enableWebhookMutation.isPending || disableWebhookMutation.isPending}
+                />
+              </div>
+
+              {/* Webhook URL */}
+              <div className="space-y-2">
+                <Label>Webhook URL</Label>
+                <div className="flex gap-2">
+                  <Input
+                    readOnly
+                    value={webhookQuery.data.webhook_url}
+                    className="font-mono text-sm"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => copyToClipboard(webhookQuery.data.webhook_url, 'URL')}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Webhook URL with Symbol */}
+              <div className="space-y-2">
+                <Label>Webhook URL (with symbol)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    readOnly
+                    value={webhookQuery.data.webhook_url_with_symbol}
+                    className="font-mono text-sm"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => copyToClipboard(webhookQuery.data.webhook_url_with_symbol, 'URL')}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Replace {'{symbol}'} with actual symbol like RELIANCE, INFY, etc.
+                </p>
+              </div>
+
+              {/* Webhook Secret */}
+              <div className="space-y-2">
+                <Label>Webhook Secret</Label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      readOnly
+                      type={showSecret ? 'text' : 'password'}
+                      value={webhookQuery.data.webhook_secret}
+                      className="font-mono text-sm pr-10"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full"
+                      onClick={() => setShowSecret(!showSecret)}
+                    >
+                      {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => copyToClipboard(webhookQuery.data.webhook_secret, 'Secret')}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Include this secret in your webhook payload as "secret" field
+                </p>
+              </div>
+
+              {/* Example Payload */}
+              <div className="space-y-2">
+                <Label>Example Payload</Label>
+                <div className="rounded-lg bg-muted p-4">
+                  <pre className="text-xs font-mono overflow-x-auto">
+{`{
+  "secret": "${showSecret ? webhookQuery.data.webhook_secret : '••••••••••••••••'}",
+  "symbol": "RELIANCE",
+  "action": "BUY",
+  "quantity": 10,
+  "price": 2500.50
+}`}
+                  </pre>
+                </div>
+              </div>
+
+              {/* Regenerate Button */}
+              <div className="flex justify-end pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => regenerateWebhookMutation.mutate()}
+                  disabled={regenerateWebhookMutation.isPending}
+                >
+                  {regenerateWebhookMutation.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                  )}
+                  Regenerate URL & Secret
+                </Button>
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
 

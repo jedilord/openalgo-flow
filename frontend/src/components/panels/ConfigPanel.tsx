@@ -1,12 +1,16 @@
-import { useCallback } from 'react'
-import { X, Trash2 } from 'lucide-react'
+import { useCallback, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useParams } from 'react-router-dom'
+import { X, Trash2, Copy, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { useWorkflowStore } from '@/stores/workflowStore'
+import { workflowsApi } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Switch } from '@/components/ui/switch'
+import { useToast } from '@/hooks/use-toast'
 import {
   EXCHANGES,
   PRODUCT_TYPES,
@@ -208,8 +212,19 @@ const NODE_TITLES: Record<string, string> = {
 
 export function ConfigPanel() {
   const { nodes, selectedNodeId, updateNodeData, deleteNode, selectNode } = useWorkflowStore()
+  const { id: workflowId } = useParams<{ id: string }>()
+  const { toast } = useToast()
+  const [showSecret, setShowSecret] = useState(false)
 
   const selectedNode = nodes.find((n) => n.id === selectedNodeId)
+  const isWebhookTrigger = selectedNode?.type === 'webhookTrigger'
+
+  // Fetch webhook info when webhook trigger node is selected
+  const webhookQuery = useQuery({
+    queryKey: ['webhook', workflowId],
+    queryFn: () => workflowsApi.getWebhook(Number(workflowId)),
+    enabled: isWebhookTrigger && !!workflowId,
+  })
 
   const handleDataChange = useCallback(
     (key: string, value: unknown) => {
@@ -229,6 +244,11 @@ export function ConfigPanel() {
   const handleClose = useCallback(() => {
     selectNode(null)
   }, [selectNode])
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text)
+    toast({ title: `${label} copied to clipboard` })
+  }
 
   if (!selectedNode) {
     return (
@@ -444,21 +464,146 @@ export function ConfigPanel() {
                   onChange={(e) => handleDataChange('label', e.target.value)}
                 />
               </div>
-              <div className="rounded-lg border border-border bg-muted/30 p-3">
-                <p className="text-xs font-medium mb-2">How it works:</p>
-                <div className="space-y-1 text-[10px] text-muted-foreground">
-                  <p>External systems can trigger this workflow via HTTP POST request.</p>
-                  <p>Enable webhook in workflow settings to get your unique URL.</p>
-                  <p>Webhook payload is available as {`{{webhook}}`} variable.</p>
+              <div className="space-y-2">
+                <Label>Symbol (for dynamic URL)</Label>
+                <Input
+                  placeholder="e.g., RELIANCE"
+                  value={(nodeData.symbol as string) || ''}
+                  onChange={(e) => handleDataChange('symbol', e.target.value)}
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Leave empty for generic webhook URL
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Exchange</Label>
+                <Select
+                  value={(nodeData.exchange as string) || 'NSE'}
+                  onValueChange={(v) => handleDataChange('exchange', v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NSE">NSE</SelectItem>
+                    <SelectItem value="BSE">BSE</SelectItem>
+                    <SelectItem value="NFO">NFO</SelectItem>
+                    <SelectItem value="CDS">CDS</SelectItem>
+                    <SelectItem value="MCX">MCX</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Webhook URL and Secret Display */}
+              {webhookQuery.isLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : webhookQuery.data ? (
+                <>
+                  {/* Webhook URL */}
+                  <div className="space-y-2">
+                    <Label className="text-xs">Webhook URL</Label>
+                    <div className="flex gap-1">
+                      <Input
+                        readOnly
+                        value={nodeData.symbol
+                          ? `${webhookQuery.data.webhook_url}/${nodeData.symbol}`
+                          : webhookQuery.data.webhook_url
+                        }
+                        className="font-mono text-[10px] h-8"
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 shrink-0"
+                        onClick={() => copyToClipboard(
+                          nodeData.symbol
+                            ? `${webhookQuery.data.webhook_url}/${nodeData.symbol}`
+                            : webhookQuery.data.webhook_url,
+                          'URL'
+                        )}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Webhook Secret */}
+                  <div className="space-y-2">
+                    <Label className="text-xs">Webhook Secret</Label>
+                    <div className="flex gap-1">
+                      <div className="relative flex-1">
+                        <Input
+                          readOnly
+                          type={showSecret ? 'text' : 'password'}
+                          value={webhookQuery.data.webhook_secret}
+                          className="font-mono text-[10px] h-8 pr-8"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-0 top-0 h-8 w-8"
+                          onClick={() => setShowSecret(!showSecret)}
+                        >
+                          {showSecret ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                        </Button>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 shrink-0"
+                        onClick={() => copyToClipboard(webhookQuery.data.webhook_secret, 'Secret')}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Status Badge */}
+                  <div className={cn(
+                    "rounded-lg border p-2 text-center text-xs",
+                    webhookQuery.data.webhook_enabled
+                      ? "border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-400"
+                      : "border-yellow-500/30 bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
+                  )}>
+                    {webhookQuery.data.webhook_enabled
+                      ? "Webhook is enabled"
+                      : "Webhook is disabled - Enable from Dashboard"
+                    }
+                  </div>
+                </>
+              ) : (
+                <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-center">
+                  <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                    Save workflow first to get webhook URL
+                  </p>
+                </div>
+              )}
+
+              {/* Example Payload */}
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+                <p className="text-xs font-medium mb-2">Example JSON Payload:</p>
+                <div className="text-[10px] font-mono text-muted-foreground bg-background/50 p-2 rounded whitespace-pre">
+{`{
+  "secret": "${showSecret && webhookQuery.data ? webhookQuery.data.webhook_secret : '{your_secret}'}",
+  "symbol": "${(nodeData.symbol as string) || 'RELIANCE'}",
+  "action": "BUY",
+  "quantity": 10,
+  "price": 2500.50
+}`}
                 </div>
               </div>
+
+              {/* Variable Access */}
               <div className="rounded-lg border border-border bg-primary/5 p-3">
                 <p className="text-xs font-medium mb-2">Variable Access:</p>
                 <div className="space-y-1 text-[10px] font-mono text-muted-foreground">
-                  <p>{`{{webhook.symbol}}`} - Symbol from payload</p>
+                  <p>{`{{webhook.symbol}}`} - Symbol from URL or payload</p>
                   <p>{`{{webhook.action}}`} - Action (BUY/SELL)</p>
                   <p>{`{{webhook.price}}`} - Price from payload</p>
-                  <p>{`{{webhook.quantity}}`} - Quantity</p>
+                  <p>{`{{webhook.quantity}}`} - Quantity from payload</p>
+                  <p>{`{{webhook.any_field}}`} - Any JSON field you send</p>
                 </div>
               </div>
             </>

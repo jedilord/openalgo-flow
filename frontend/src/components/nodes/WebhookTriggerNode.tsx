@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils'
 interface WebhookTriggerNodeProps {
   data: {
     label?: string
+    symbol?: string
+    exchange?: string
   }
   selected?: boolean
 }
@@ -35,6 +37,14 @@ export const WebhookTriggerNode = memo(({ data, selected }: WebhookTriggerNodePr
             </div>
           </div>
         </div>
+        {data.symbol && (
+          <div className="rounded bg-muted/50 px-1.5 py-1 text-center mb-1">
+            <span className="text-[10px] font-mono text-primary">
+              {data.symbol}
+              {data.exchange && <span className="text-muted-foreground">:{data.exchange}</span>}
+            </span>
+          </div>
+        )}
         {data.label && (
           <div className="rounded bg-muted/50 px-1.5 py-1 text-center">
             <span className="text-[10px] text-muted-foreground">{data.label}</span>
