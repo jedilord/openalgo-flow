@@ -190,19 +190,28 @@ class PriceMonitor:
 
         Data format from OpenAlgo:
         {
+            "type": "market_data",
             "symbol": "RELIANCE",
             "exchange": "NSE",
-            "ltp": 2500.50,
-            ...
+            "data": {"ltp": 1548.2, "timestamp": ...}
         }
         """
         try:
+            # Debug: Log raw data received
+            logger.debug(f"Price update received: {data}")
+
             symbol = data.get("symbol")
             exchange = data.get("exchange")
-            ltp = data.get("ltp")
+
+            # LTP is nested inside 'data' field
+            market_data = data.get("data", {})
+            ltp = market_data.get("ltp") if isinstance(market_data, dict) else data.get("ltp")
 
             if not all([symbol, exchange, ltp]):
+                logger.warning(f"Incomplete price data: symbol={symbol}, exchange={exchange}, ltp={ltp}")
                 return
+
+            logger.info(f"LTP Update: {symbol}@{exchange} = {ltp}")
 
             key = self._get_subscription_key(symbol, exchange)
             workflow_ids = self._subscriptions.get(key, set())
