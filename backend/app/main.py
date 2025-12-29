@@ -16,12 +16,17 @@ from app.api.routes import auth as auth_router
 from app.api.routes import webhook as webhook_router
 from app.api import websocket as websocket_router
 
-# Configure logging
+# Configure logging based on DEBUG setting
+log_level = logging.DEBUG if settings.debug else logging.INFO
 logging.basicConfig(
-    level=logging.INFO,
+    level=log_level,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
+# Suppress verbose HTTP logs from httpx/httpcore (OpenAlgo SDK)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 
 @asynccontextmanager

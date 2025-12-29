@@ -211,15 +211,20 @@ class PriceMonitor:
                 logger.warning(f"Incomplete price data: symbol={symbol}, exchange={exchange}, ltp={ltp}")
                 return
 
-            logger.info(f"LTP Update: {symbol}@{exchange} = {ltp}")
+            logger.debug(f"LTP Update: {symbol}@{exchange} = {ltp}")
 
             key = self._get_subscription_key(symbol, exchange)
             workflow_ids = self._subscriptions.get(key, set())
 
-            for workflow_id in workflow_ids:
+            logger.debug(f"Checking {len(workflow_ids)} alerts for {key}")
+
+            for workflow_id in list(workflow_ids):  # Use list() to avoid modification during iteration
                 alert = self._alerts.get(workflow_id)
                 if alert and not alert.triggered:
+                    logger.debug(f"Checking alert for workflow {workflow_id}: {alert.condition} {alert.target_price}, last_price={alert.last_price}, current={ltp}")
                     self._check_and_trigger(alert, float(ltp))
+                elif alert and alert.triggered:
+                    logger.debug(f"Alert for workflow {workflow_id} already triggered")
 
         except Exception as e:
             logger.error(f"Error processing price update: {e}")
@@ -227,6 +232,8 @@ class PriceMonitor:
     def _check_and_trigger(self, alert: PriceAlert, current_price: float):
         """Check if price condition is met and trigger workflow"""
         condition_met = self._evaluate_condition(alert, current_price)
+
+        logger.debug(f"Condition check for workflow {alert.workflow_id}: {alert.condition} {alert.target_price} | current={current_price} last={alert.last_price} | result={condition_met}")
 
         # Update last price for next check
         alert.last_price = current_price
